@@ -8,13 +8,31 @@ import random
 import time
 import threading
 from datetime import datetime, timezone, timedelta
-from backend.building_data import create_single_building_portfolio
-from backend.models import (
-    DEFAULT_CONFIG,
-    analyze_building_system,
-    predict_zone_energy,
-    explain_zone_shap
-)
+import sys
+import os
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(CURRENT_DIR)
+for p in [CURRENT_DIR, ROOT_DIR]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
+try:
+    from backend.building_data import create_single_building_portfolio
+    from backend.models import (
+        DEFAULT_CONFIG,
+        analyze_building_system,
+        predict_zone_energy,
+        explain_zone_shap
+    )
+except (ImportError, ModuleNotFoundError):
+    from building_data import create_single_building_portfolio
+    from models import (
+        DEFAULT_CONFIG,
+        analyze_building_system,
+        predict_zone_energy,
+        explain_zone_shap
+    )
 
 def generate_building_history():
     history = []

@@ -21,14 +21,28 @@ import shap
 from datetime import datetime, timezone
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-MODEL_PATH = os.path.join(BASE_DIR, "energy_svr_model.pkl")
-if not os.path.exists(MODEL_PATH):
-    MODEL_PATH = os.path.join(BASE_DIR, "model_training", "energy_svr_model.pkl")
+def _find_file(filename: str, subfolders=("", "model_training", "backend")):
+    candidates = [
+        os.path.join(BASE_DIR, filename),
+        os.path.join(CURRENT_DIR, filename),
+        os.path.join(os.getcwd(), filename),
+    ]
+    for sub in subfolders:
+        if sub:
+            candidates.extend([
+                os.path.join(BASE_DIR, sub, filename),
+                os.path.join(CURRENT_DIR, sub, filename),
+                os.path.join(os.getcwd(), sub, filename),
+            ])
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return os.path.join(BASE_DIR, filename)
 
-DATASET_PATH = os.path.join(BASE_DIR, "model_training", "energy_consumption_dataset.csv")
-if not os.path.exists(DATASET_PATH):
-    DATASET_PATH = os.path.join(BASE_DIR, "energy_consumption_dataset.csv")
+MODEL_PATH = _find_file("energy_svr_model.pkl")
+DATASET_PATH = _find_file("energy_consumption_dataset.csv")
 
 DEFAULT_CONFIG = {
     "electricityTariff": 0.18,  # $0.18 per kWh

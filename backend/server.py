@@ -9,20 +9,31 @@ from datetime import datetime, timezone
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
-# Add root directory to path for cross-imports
+# Add both current directory (backend/) and root directory to sys.path
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(CURRENT_DIR)
-if ROOT_DIR not in sys.path:
-    sys.path.insert(0, ROOT_DIR)
+for p in [CURRENT_DIR, ROOT_DIR]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
-from backend.state import state_manager
-from backend.db import db_manager
-from backend.models import (
-    predict_zone_energy,
-    explain_zone_shap,
-    analyze_building_system,
-    FEATURE_COLS,
-)
+try:
+    from backend.state import state_manager
+    from backend.db import db_manager
+    from backend.models import (
+        predict_zone_energy,
+        explain_zone_shap,
+        analyze_building_system,
+        FEATURE_COLS,
+    )
+except (ImportError, ModuleNotFoundError):
+    from state import state_manager
+    from db import db_manager
+    from models import (
+        predict_zone_energy,
+        explain_zone_shap,
+        analyze_building_system,
+        FEATURE_COLS,
+    )
 
 DIST_DIR = os.path.join(ROOT_DIR, "dist")
 if not os.path.exists(DIST_DIR):

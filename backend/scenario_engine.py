@@ -1,8 +1,19 @@
 """
 Demonstration Scenario Engine for Smart Building Energy Management System.
 """
-import copy
-from backend.building_data import INITIAL_BUILDING
+import os
+import sys
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(CURRENT_DIR)
+for p in [CURRENT_DIR, ROOT_DIR]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
+try:
+    from backend.building_data import INITIAL_BUILDING
+except (ImportError, ModuleNotFoundError):
+    from building_data import INITIAL_BUILDING
 
 SCENARIOS = {
     "normal": {
