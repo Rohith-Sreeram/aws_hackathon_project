@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Navbar } from './components/Navbar.tsx';
 import { OverviewTab } from './components/OverviewTab.tsx';
-
+import { ShapExplainerTab } from './components/ShapExplainerTab.tsx';
+import { EnergyTab } from './components/EnergyTab.tsx';
 import { UtilizationTab } from './components/UtilizationTab.tsx';
 import { AnomalyTab } from './components/AnomalyTab.tsx';
 import { WastageTab } from './components/WastageTab.tsx';
@@ -12,6 +13,7 @@ import { FloorViewTab } from './components/FloorViewTab.tsx';
 import { TariffModal } from './components/TariffModal.tsx';
 import {
   fetchDashboardSummary,
+  fetchDashboardHistory,
   controlHvacApi,
   controlLightingApi,
   applyRecommendationActionApi,
@@ -37,8 +39,12 @@ export default function App() {
     if (!isSilent) setIsLoading(true);
     setErrorBanner(null);
     try {
-      const sumData = await fetchDashboardSummary();
+      const [sumData, histData] = await Promise.all([
+        fetchDashboardSummary(),
+        fetchDashboardHistory().catch(() => ({ history: [] })),
+      ]);
       setSummary(sumData);
+      setHistory(histData.history || []);
       if (sumData.simulation) {
         setIsLiveSimulating(sumData.simulation.is_simulating);
       }
@@ -219,6 +225,17 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'shap-explainer' && (
+          <ShapExplainerTab
+            summary={summary}
+            selectedFloorId={selectedFloorId}
+            onRefresh={() => loadData(true)}
+          />
+        )}
+
+        {activeTab === 'energy' && (
+          <EnergyTab summary={summary} history={history} />
+        )}
 
         {activeTab === 'utilization' && (
           <UtilizationTab

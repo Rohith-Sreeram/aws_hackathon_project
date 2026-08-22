@@ -7,12 +7,8 @@ import {
   ConfigSettings,
 } from '../types.ts';
 
-// In production (Vercel), VITE_API_URL points to your deployed Flask backend (e.g. Render).
-// In development, it is empty so all /api/* calls go to the local Vite dev server proxy.
-const API_BASE = (import.meta.env.VITE_API_URL as string) || '';
-
 export async function fetchDashboardSummary(): Promise<DashboardSummary> {
-  const res = await fetch(`${API_BASE}/api/dashboard/summary`);
+  const res = await fetch('/api/dashboard/summary');
   if (!res.ok) {
     throw new Error(`Failed to fetch summary: ${res.statusText}`);
   }
@@ -32,7 +28,7 @@ export async function fetchDashboardHistory(): Promise<{
   interval: string;
   total_points: number;
 }> {
-  const res = await fetch(`${API_BASE}/api/dashboard/history`);
+  const res = await fetch('/api/dashboard/history');
   if (!res.ok) {
     throw new Error(`Failed to fetch history: ${res.statusText}`);
   }
@@ -100,7 +96,7 @@ export async function analyzeFullBuildingApi(payload?: { building?: any; outdoor
 }
 
 export async function fetchAnomaliesApi(): Promise<AnomalyRecord[]> {
-  const res = await fetch(`${API_BASE}/api/anomalies`);
+  const res = await fetch('/api/anomalies');
   if (!res.ok) {
     throw new Error('Failed to fetch anomalies');
   }
@@ -108,7 +104,7 @@ export async function fetchAnomaliesApi(): Promise<AnomalyRecord[]> {
 }
 
 export async function fetchWastagesApi(): Promise<any[]> {
-  const res = await fetch(`${API_BASE}/api/wastages`);
+  const res = await fetch('/api/wastages');
   if (!res.ok) {
     throw new Error('Failed to fetch wastages');
   }
@@ -116,7 +112,7 @@ export async function fetchWastagesApi(): Promise<any[]> {
 }
 
 export async function fetchRecommendationsApi(): Promise<Recommendation[]> {
-  const res = await fetch(`${API_BASE}/api/recommendations`);
+  const res = await fetch('/api/recommendations');
   if (!res.ok) {
     throw new Error('Failed to fetch recommendations');
   }
@@ -176,7 +172,7 @@ export async function applyScenarioApi(scenarioId: string): Promise<any> {
 }
 
 export async function fetchScenariosApi(): Promise<any> {
-  const res = await fetch(`${API_BASE}/api/scenarios`);
+  const res = await fetch('/api/scenarios');
   return res.json();
 }
 
@@ -194,7 +190,7 @@ export async function updateSettingsApi(settings: Partial<ConfigSettings>): Prom
 }
 
 export async function fetchFloorDetails(floorId: string): Promise<any> {
-  const res = await fetch(`${API_BASE}/api/floor/${floorId}`);
+  const res = await fetch(`/api/floor/${floorId}`);
   if (!res.ok) {
     throw new Error(`Failed to fetch floor details: ${res.statusText}`);
   }
@@ -202,7 +198,7 @@ export async function fetchFloorDetails(floorId: string): Promise<any> {
 }
 
 export async function fetchBuildingDetails(buildingId: string): Promise<any> {
-  const res = await fetch(`${API_BASE}/api/building/${buildingId}`);
+  const res = await fetch(`/api/building/${buildingId}`);
   if (!res.ok) {
     throw new Error(`Failed to fetch building details: ${res.statusText}`);
   }
@@ -250,7 +246,7 @@ export async function fetchSimulationStatus(): Promise<{
   last_tick_time: string;
   outdoor_temp: number;
 }> {
-  const res = await fetch(`${API_BASE}/api/simulation/status`);
+  const res = await fetch('/api/simulation/status');
   if (!res.ok) {
     throw new Error('Failed to fetch simulation status');
   }

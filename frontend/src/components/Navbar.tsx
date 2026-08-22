@@ -10,7 +10,7 @@ import {
   Flame,
   SunMedium,
   CheckCircle2,
-
+  Sparkles,
   Layers,
   Play,
   Pause,
@@ -68,7 +68,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'floor-2', label: 'Floor 2', icon: Layers, badge: '4 Off + 2 Halls' },
     { id: 'floor-3', label: 'Floor 3', icon: Layers, badge: '4 Off + 2 Halls' },
     { id: 'floor-4', label: 'Floor 4', icon: Layers, badge: '4 Off + 2 Halls' },
-
+    { id: 'shap-explainer', label: 'SHAP Explainability', icon: Sparkles, badge: 'SVR ML', badgeColor: 'bg-indigo-600 text-white' },
+    { id: 'energy', label: 'Energy Forecasting', icon: Zap },
     {
       id: 'anomalies',
       label: 'Anomaly Center',

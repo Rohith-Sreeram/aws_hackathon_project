@@ -1,8 +1,33 @@
-node_modules/
-build/
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
 dist/
-coverage/
+
+# Environment variables (NEVER commit this)
+.env
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Node.js
+node_modules/
+
+# Build output (Vercel rebuilds from source)
+# dist/ is intentionally NOT ignored so Flask can serve it locally
+
+# IDE
+.vscode/
+.idea/
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Logs
 *.log
-.env*
-!.env.example
