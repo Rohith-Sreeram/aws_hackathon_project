@@ -1,0 +1,6 @@
+{
+  "name": "Smart Building Energy Management System",
+  "description": "AI-based dashboard and analytics platform for commercial office building energy management, utilization tracking, anomaly detection, wastage analysis, and comfort-aware recommendations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
