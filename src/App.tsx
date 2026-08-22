@@ -186,14 +186,55 @@ export default function App() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {errorBanner && (
-          <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-semibold flex items-center justify-between shadow-xs">
-            <span>{errorBanner}</span>
-            <button
-              onClick={() => setErrorBanner(null)}
-              className="text-rose-600 hover:text-rose-900 text-xs underline cursor-pointer ml-4 font-medium"
-            >
-              Dismiss
-            </button>
+          <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs shadow-xs space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                <span>Backend Connection Alert: {errorBanner}</span>
+              </div>
+              <button
+                onClick={() => setErrorBanner(null)}
+                className="text-rose-600 hover:text-rose-900 text-xs underline cursor-pointer ml-4 font-medium"
+              >
+                Dismiss
+              </button>
+            </div>
+            <div className="pt-2 border-t border-rose-200/60 flex flex-wrap items-center gap-2">
+              <span className="text-slate-700 font-medium">Backend URL:</span>
+              <input
+                id="backend-url-input"
+                type="text"
+                defaultValue={
+                  (typeof window !== 'undefined' && localStorage.getItem('BEMS_BACKEND_URL')) ||
+                  (import.meta.env.VITE_API_URL as string) ||
+                  ''
+                }
+                placeholder="e.g. https://bems-backend.onrender.com"
+                className="flex-1 min-w-[280px] px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+              />
+              <button
+                onClick={() => {
+                  const input = document.getElementById('backend-url-input') as HTMLInputElement;
+                  if (input) {
+                    if (input.value.trim()) {
+                      localStorage.setItem('BEMS_BACKEND_URL', input.value.trim().replace(/\/+$/, ''));
+                    } else {
+                      localStorage.removeItem('BEMS_BACKEND_URL');
+                    }
+                    loadData(false);
+                  }
+                }}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold cursor-pointer transition shadow-xs"
+              >
+                Connect & Save
+              </button>
+              <button
+                onClick={() => loadData(false)}
+                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold cursor-pointer transition shadow-xs"
+              >
+                Retry
+              </button>
+            </div>
           </div>
         )}
 

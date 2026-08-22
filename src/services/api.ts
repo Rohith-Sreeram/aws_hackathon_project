@@ -7,16 +7,70 @@ import {
   ConfigSettings,
 } from '../types.ts';
 
-// In production (Vercel), VITE_API_URL points to your deployed Flask backend (e.g. Render).
-// In development, it is empty so all /api/* calls go to the local Vite dev server proxy.
-const API_BASE = (import.meta.env.VITE_API_URL as string) || '';
+/**
+ * Returns the effective API Base URL in priority:
+ * 1. Runtime override from localStorage (allows fixing URL directly from browser)
+ * 2. Build-time environment variable VITE_API_URL
+ * 3. Default empty string (relative path for local Vite dev server / same-origin proxy)
+ */
+export function getApiBase(): string {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('BEMS_BACKEND_URL');
+    if (saved && saved.trim()) {
+      return saved.trim().replace(/\/+$/, '');
+    }
+  }
+  const envUrl = (import.meta.env.VITE_API_URL as string) || '';
+  return envUrl.trim().replace(/\/+$/, '');
+}
+
+export function setCustomApiUrl(url: string): void {
+  if (typeof window !== 'undefined') {
+    if (!url || !url.trim()) {
+      localStorage.removeItem('BEMS_BACKEND_URL');
+    } else {
+      localStorage.setItem('BEMS_BACKEND_URL', url.trim().replace(/\/+$/, ''));
+    }
+  }
+}
+
+/**
+ * Helper to perform fetch and safely parse JSON with meaningful error diagnostics
+ */
+async function safeFetchJson<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const base = getApiBase();
+  const url = `${base}${endpoint}`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, options);
+  } catch (err: any) {
+    throw new Error(
+      `Cannot connect to backend at ${url || window.location.origin}. Render free-tier may be waking up (wait ~30s), or check your backend URL.`
+    );
+  }
+
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    const text = await res.text().catch(() => '');
+    if (text.includes('<!DOCTYPE html') || text.includes('<html')) {
+      throw new Error(
+        `Backend returned HTML instead of API data. Please configure your Render backend URL in Vercel settings (VITE_API_URL) or enter it in the connection bar above.`
+      );
+    }
+    throw new Error(`Unexpected non-JSON response from server (HTTP ${res.status})`);
+  }
+
+  const data = await res.json();
+  if (!res.ok) {
+    const msg = data.errors ? data.errors.join('; ') : data.error || res.statusText || `Request failed with status ${res.status}`;
+    throw new Error(msg);
+  }
+  return data;
+}
 
 export async function fetchDashboardSummary(): Promise<DashboardSummary> {
-  const res = await fetch(`${API_BASE}/api/dashboard/summary`);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch summary: ${res.statusText}`);
-  }
-  return res.json();
+  return safeFetchJson<DashboardSummary>('/api/dashboard/summary');
 }
 
 export async function fetchBuildingSummary(): Promise<DashboardSummary> {
@@ -32,24 +86,15 @@ export async function fetchDashboardHistory(): Promise<{
   interval: string;
   total_points: number;
 }> {
-  const res = await fetch(`${API_BASE}/api/dashboard/history`);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch history: ${res.statusText}`);
-  }
-  return res.json();
+  return safeFetchJson<{ history: any[]; interval: string; total_points: number }>('/api/dashboard/history');
 }
 
 export async function submitSensorData(readings: SensorReading | SensorReading[]): Promise<any> {
-  const res = await fetch('/api/sensor-data', {
+  return safeFetchJson<any>('/api/sensor-data', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(readings),
   });
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.errors ? data.errors.join('; ') : data.error || 'Failed to submit sensor data');
-  }
-  return data;
 }
 
 export async function predictEnergyApi(payload: {
@@ -57,16 +102,11 @@ export async function predictEnergyApi(payload: {
   hourOfDay?: number;
   dayOfWeek?: number;
 }): Promise<EnergyPrediction> {
-  const res = await fetch('/api/predict/energy', {
+  return safeFetchJson<EnergyPrediction>('/api/predict/energy', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.error || 'Prediction failed');
-  }
-  return res.json();
 }
 
 export async function detectAnomalyApi(payload: {
@@ -74,152 +114,91 @@ export async function detectAnomalyApi(payload: {
   expected_energy: number;
   reading?: Partial<SensorReading>;
 }): Promise<any> {
-  const res = await fetch('/api/predict/anomaly', {
+  return safeFetchJson<any>('/api/predict/anomaly', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.error || 'Anomaly detection failed');
-  }
-  return res.json();
 }
 
 export async function analyzeFullBuildingApi(payload?: { building?: any; outdoor_temp?: number }): Promise<any> {
-  const res = await fetch('/api/analyze', {
+  return safeFetchJson<any>('/api/analyze', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload || {}),
   });
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.error || 'Building analysis failed');
-  }
-  return res.json();
 }
 
 export async function fetchAnomaliesApi(): Promise<AnomalyRecord[]> {
-  const res = await fetch(`${API_BASE}/api/anomalies`);
-  if (!res.ok) {
-    throw new Error('Failed to fetch anomalies');
-  }
-  return res.json();
+  return safeFetchJson<AnomalyRecord[]>('/api/anomalies');
 }
 
 export async function fetchWastagesApi(): Promise<any[]> {
-  const res = await fetch(`${API_BASE}/api/wastages`);
-  if (!res.ok) {
-    throw new Error('Failed to fetch wastages');
-  }
-  return res.json();
+  return safeFetchJson<any[]>('/api/wastages');
 }
 
 export async function fetchRecommendationsApi(): Promise<Recommendation[]> {
-  const res = await fetch(`${API_BASE}/api/recommendations`);
-  if (!res.ok) {
-    throw new Error('Failed to fetch recommendations');
-  }
-  return res.json();
+  return safeFetchJson<Recommendation[]>('/api/recommendations');
 }
 
 export async function applyRecommendationActionApi(recId: string, action: 'apply' | 'acknowledge' | 'dismiss'): Promise<any> {
-  const res = await fetch(`/api/recommendations/${recId}/action`, {
+  return safeFetchJson<any>(`/api/recommendations/${recId}/action`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action }),
   });
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.error || 'Failed to update recommendation');
-  }
-  return res.json();
 }
 
 export async function controlHvacApi(payload: { floor_id: string; zone_id: string; mode: 'normal' | 'energy_saving' | 'off' }): Promise<any> {
-  const res = await fetch('/api/control/hvac', {
+  return safeFetchJson<any>('/api/control/hvac', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.error || 'HVAC control failed');
-  }
-  return res.json();
 }
 
 export async function controlLightingApi(payload: { floor_id: string; zone_id: string; mode: 'on' | 'dimmed' | 'off' }): Promise<any> {
-  const res = await fetch('/api/control/lighting', {
+  return safeFetchJson<any>('/api/control/lighting', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.error || 'Lighting control failed');
-  }
-  return res.json();
 }
 
 export async function applyScenarioApi(scenarioId: string): Promise<any> {
-  const res = await fetch('/api/scenarios/apply', {
+  return safeFetchJson<any>('/api/scenarios/apply', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ scenarioId }),
   });
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.error || 'Failed to apply scenario');
-  }
-  return res.json();
 }
 
 export async function fetchScenariosApi(): Promise<any> {
-  const res = await fetch(`${API_BASE}/api/scenarios`);
-  return res.json();
+  return safeFetchJson<any>('/api/scenarios');
 }
 
 export async function updateSettingsApi(settings: Partial<ConfigSettings>): Promise<any> {
-  const res = await fetch('/api/settings', {
+  return safeFetchJson<any>('/api/settings', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(settings),
   });
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.error || 'Failed to update settings');
-  }
-  return res.json();
 }
 
 export async function fetchFloorDetails(floorId: string): Promise<any> {
-  const res = await fetch(`${API_BASE}/api/floor/${floorId}`);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch floor details: ${res.statusText}`);
-  }
-  return res.json();
+  return safeFetchJson<any>(`/api/floor/${floorId}`);
 }
 
 export async function fetchBuildingDetails(buildingId: string): Promise<any> {
-  const res = await fetch(`${API_BASE}/api/building/${buildingId}`);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch building details: ${res.statusText}`);
-  }
-  return res.json();
+  return safeFetchJson<any>(`/api/building/${buildingId}`);
 }
 
 export async function predictShapApi(features: Record<string, any>): Promise<any> {
-  const res = await fetch('/api/predict/shap', {
+  return safeFetchJson<any>('/api/predict/shap', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(features),
   });
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.error || 'SHAP Prediction failed');
-  }
-  return res.json();
 }
 
 export async function updateZoneMlControlApi(payload: {
@@ -231,16 +210,11 @@ export async function updateZoneMlControlApi(payload: {
   temperature?: number;
   humidity?: number;
 }): Promise<any> {
-  const res = await fetch('/api/zone/control', {
+  return safeFetchJson<any>('/api/zone/control', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.error || 'Zone control failed');
-  }
-  return res.json();
 }
 
 export async function fetchSimulationStatus(): Promise<{
@@ -250,41 +224,33 @@ export async function fetchSimulationStatus(): Promise<{
   last_tick_time: string;
   outdoor_temp: number;
 }> {
-  const res = await fetch(`${API_BASE}/api/simulation/status`);
-  if (!res.ok) {
-    throw new Error('Failed to fetch simulation status');
-  }
-  return res.json();
+  return safeFetchJson<{
+    is_simulating: boolean;
+    interval: number;
+    tick_count: number;
+    last_tick_time: string;
+    outdoor_temp: number;
+  }>('/api/simulation/status');
 }
 
 export async function toggleSimulationApi(isActive?: boolean, interval?: number): Promise<any> {
-  const res = await fetch('/api/simulation/toggle', {
+  return safeFetchJson<any>('/api/simulation/toggle', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ is_active: isActive, interval }),
   });
-  if (!res.ok) {
-    throw new Error('Failed to toggle simulation');
-  }
-  return res.json();
 }
 
 export async function triggerSimulationTickApi(): Promise<any> {
-  const res = await fetch('/api/simulation/tick', {
+  return safeFetchJson<any>('/api/simulation/tick', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
   });
-  if (!res.ok) {
-    throw new Error('Failed to trigger simulation tick');
-  }
-  return res.json();
 }
 
 export async function resetBuildingApi(): Promise<any> {
-  const res = await fetch('/api/building/reset', {
+  return safeFetchJson<any>('/api/building/reset', {
     method: 'POST',
   });
-  return res.json();
 }
 
 export async function resetPortfolioApi(): Promise<any> {
